@@ -1,4 +1,4 @@
- Object Recognition through Image Processing with Webcam
+# Object Recognition through Image Processing with Webcam
 
 This project demonstrates real-time object detection using a webcam feed. It utilizes OpenCV for image processing and object detection, MediaPipe for face detection, and pre-trained deep learning models.
 
