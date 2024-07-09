@@ -21,45 +21,72 @@ net.setInputScale(1.0 / 127.5)
 net.setInputMean((127.5, 127.5, 127.5))
 net.setInputSwapRB(True)
 
-# Initialize MediaPipe
-mp_drawing = mp.solutions.drawing_utils
-mp_face_detection = mp.solutions.face_detection
+print("Select an option:")
+print("1. Recognize objects through a photo")
+print("2. Recognize objects through a camera")
 
-# Open webcam
-cap = cv2.VideoCapture(0)
+option = int(input("Enter your choice: "))
 
-# Set the escape key variable
-esc_key = 27
+if option == 1:
+    # Recognize objects through a photo
+    img_path = input("Enter the path to the image: ")
+    img = cv2.imread(img_path)
 
-with mp_face_detection.FaceDetection(min_detection_confidence=0.2) as face_detection:
-    while cap.isOpened():
-        success, img = cap.read()
-        if not success:
-            break
+    classIds, confs, bbox = net.detect(img, confThreshold=thres)
+    bbox = list(bbox)
+    confs = list(np.array(confs).reshape(1, -1)[0])
+    confs = list(map(float, confs))
 
-        # Convert the BGR image to RGB
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    indices = cv2.dnn.NMSBoxes(bbox, confs, thres, nms_threshold)
+    # print("classNames:", classNames)
+    # print("classIds:", classIds)
+    # print("Length of classNames:", len(classNames))
+    for i in indices:
+        box = bbox[i]
+        x, y, w, h = box[0], box[1], box[2], box[3]
+        cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
+        cv2.putText(img, classNames[(classIds[i] - 1) % len(classNames)].upper(), (box[0] + 10, box[1] + 30),
+                    cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
 
-        # Process the image and detect objects
-        classIds, confs, bbox = net.detect(img, confThreshold=thres)
-        bbox = list(bbox)
-        confs = list(np.array(confs).reshape(1, -1)[0])
-        confs = list(map(float, confs))
+    cv2.imshow('Object Recognition through Image Processing', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-        indices = cv2.dnn.NMSBoxes(bbox, confs, thres, nms_threshold)
+elif option == 2:
+    # Recognize objects through a camera
+    cap = cv2.VideoCapture(0)
 
-        for i in indices:
-            box = bbox[i]
-            x, y, w, h = box[0], box[1], box[2], box[3]
-            cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
-            cv2.putText(img, classNames[classIds[i] - 1].upper(), (box[0] + 10, box[1] + 30),
-                        cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+    with mp.solutions.face_detection.FaceDetection(min_detection_confidence=0.2) as face_detection:
+        while cap.isOpened():
+            success, img = cap.read()
+            if not success:
+                break
 
-        # Flip the image horizontally for a selfie-view display
-        cv2.imshow('Object Recognition through Image Processing', cv2.flip(img, 1))
+            # Convert the BGR image to RGB
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        if cv2.waitKey(1) & 0xFF == esc_key:
-            break
+            # Process the image and detect objects
+            classIds, confs, bbox = net.detect(img, confThreshold=thres)
+            bbox = list(bbox)
+            confs = list(np.array(confs).reshape(1, -1)[0])
+            confs = list(map(float, confs))
 
-cap.release()
-cv2.destroyAllWindows()
+            indices = cv2.dnn.NMSBoxes(bbox, confs, thres, nms_threshold)
+
+            for i in indices:
+                box = bbox[i]
+                x, y, w, h = box[0], box[1], box[2], box[3]
+                cv2.rectangle(img, (x, y), (x + w, y + h), color=(0, 255, 0), thickness=2)
+                cv2.putText(img, classNames[(classIds[i] - 1) % len(classNames)].upper(), (box[0] + 10, box[1] + 30),
+                            cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+            # Flip the image horizontally for a selfie-view display
+            cv2.imshow('Object Recognition through Image Processing', cv2.flip(img, 1))
+
+            if cv2.waitKey(1) & 0xFF == 27:
+                break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+else:
+    print("Invalid option. Please try again.")
